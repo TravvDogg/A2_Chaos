@@ -32,6 +32,12 @@ function windowResized() {
   buffer.resizeCanvas(windowWidth, windowHeight);
 }
 
+let glitchX, glitchY, glitchW, glitchH;
+let glitchFrames = 0;
+const glitch_duration = 200;
+const glitch_chance = 0.005;
+
+
 function draw() {
   colorMode(RGB)
   
@@ -61,7 +67,6 @@ function draw() {
   rectMode(CORNER)
   noStroke()
 
-  
   
   // ——— 3) draw last frame with feedback and transformation ———
   push();
@@ -122,15 +127,39 @@ function draw() {
       particles.splice(i, 1);
     }
   }
-
+  
   // --- final) copy current canvas into buffer for next frame ———
   buffer.image(get(0, 0, width, height), 0, 0);
+  
+  // 3) either continue an existing glitch …
+  if (glitchFrames > 0) {
+    // 1. carve out the hole
+    buffer.erase();
+    buffer.rect(glitchX, glitchY, glitchW, glitchH);
+    buffer.noErase();
+  
+    // 2. extract the patch as its own image
+    let patch = buffer.get(glitchX, glitchY, glitchW, glitchH);
+    // 3. invert that small image
+    patch.filter(INVERT);
+    // 4. draw it back into the hole
+    buffer.image(patch, glitchX, glitchY);
+  
+    glitchFrames--;
+    if (glitchFrames == 1) {
+      resizeCanvas(windowWidth, windowHeight);
+      // buffer.resizeCanvas(windowWidth, windowHeight);
+    }
+  }
+  // … or start a new one
+  else if (random() < glitch_chance) {
+    glitchW = random(width / 16, width / 5);
+    glitchH = random(height / 16, height / 5);
+    glitchX = random(0, width - glitchW);
+    glitchY = random(0, height - glitchH);
+    glitchFrames = int(random(100, 1000));
+  }
 }
-
-function mousePressed() {
-
-}
-
 
 // Particle.js
 
