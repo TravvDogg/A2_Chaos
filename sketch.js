@@ -52,7 +52,7 @@ function draw() {
   let treble = fft.getEnergy("treble")
   let mid = fft.getEnergy("mid");
   // only apply shake when bass energy exceeds threshold
-  let shakeAmount = bass > 0 ? map(bass, 100, 255, 0, 50) : 0;
+  let shakeAmount = bass > 150 ? map(bass, 200, 255, 0, 30) : 0;
 
   // Draw square in the centre
   squareSize = height > width ? width / 5 : height / 5
@@ -86,7 +86,7 @@ function draw() {
   )
   // slight fade
   // tint(225, 245);
-  tint(225, map(audioLevel, 0, 255, 120, 245))
+  tint(225, map(audioLevel, 0, 120, 150, 230))
   image(buffer, 0, 0);
   pop();
   
@@ -113,10 +113,10 @@ function draw() {
   }
 
   // --- Draw treble circles ---
-      // spawn persistent particles on click
-      for (let i = 0; i < (treble / 255) * 20; i++) {
-        particles.push(new Particle(random(width), random(height)));
-      }
+    // spawn persistent particles on click
+    for (let i = 0; i < (treble / 255) * 20; i++) {
+      particles.push(new Particle(random(width), random(height)));
+    }
 
   // update and draw particles
   for (let i = particles.length - 1; i >= 0; i--) {
