@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mandelbulb Explorer</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<canvas id="glcanvas"></canvas>
+<script>
+// -- Vector / Matrix Helpers --
+function cross(a,b){ return [
+  a[1]*b[2] - a[2]*b[1],
+  a[2]*b[0] - a[0]*b[2],
+  a[0]*b[1] - a[1]*b[0]
+]; }
+function normalize(v){
+  let l = Math.hypot(v[0],v[1],v[2]);
+  return [ v[0]/l, v[1]/l, v[2]/l ];
+}
+
+// -- GLSL Sources --
+const vsSource = `#version 300 es
+in vec4 a_position;
+void main() {
+  gl_Position = a_position;
+}`;
+
+const fsSource = `#version 300 es
+precision highp float;
+uniform vec2 u_resolution;
+uniform vec3 u_cameraPos;
+uniform mat3 u_cameraMat;
+out vec4 outColor;
+
+// Ray-marching settings
+#define MAX_STEPS 1200
+#define MAX_DIST   200.0
+#define SURF_DIST  0.001
+
+// Distance estimator for 8th-order Mandelbulb
+float mandelbulbDE(vec3 pos){
+  vec3 z = pos;
+  float dr = 1.0;
+  float r = 0.0;
+  const int Iter = 8;
+  for(int i=0; i<Iter; i++){
+    r = length(z);
+    if(r>2.0) break;
+    float theta = acos(z.z/r);
+    float phi   = atan(z.y, z.x);
+    float powr  = pow(r, float(Iter));
+    dr = powr*float(Iter)*dr + 1.0;
+    float zr = pow(r, float(Iter));
+    theta *= float(Iter);
+    phi   *= float(Iter);
+    z = zr * vec3(
+      sin(theta)*cos(phi),
+      sin(phi)*sin(theta),
+      cos(theta)
+    ) + pos;
+  }
+  if(r <= 2.0) return 0.1;
+  return r/dr;
+}
+
+float sceneDE(vec3 p){
+  return mandelbulbDE(p);
+}
+
+// Estimate normal by gradient
+vec3 getNormal(vec3 p){
+  float h = 0.0001;
+  vec2 k = vec2(1.0, -1.0);
+  return normalize(
+    k.xyy * sceneDE(p + k.xyy*h) +
+    k.yyx * sceneDE(p + k.yyx*h) +
+    k.yxy * sceneDE(p + k.yxy*h) +
+    k.xxx * sceneDE(p + k.xxx*h)
+  );
+}
+
+// Ray-march and shade
+void main(){
+  vec2 uv = (gl_FragCoord.xy - 0.5*u_resolution) / u_resolution.y;
+  vec3 rd = normalize(u_cameraMat * vec3(uv, 1.0));
+  vec3 ro = u_cameraPos;
+  float dist = 0.0;
+  for(int i=0; i<MAX_STEPS; i++){
+    vec3 p = ro + rd*dist;
+    float d = sceneDE(p);
+    if(d < SURF_DIST || dist > MAX_DIST) break;
+    dist += d;
+  }
+  vec3 col = vec3(0.0);
+  if(dist < MAX_DIST){
+    vec3 p = ro + rd*dist;
+    vec3 n = getNormal(p);
+    float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0);
+    // col = (dist < 0.01) ? vec3(1.0, 0.0, 0.0) : vec3(diff);
+    col = vec3(diff);
+  }
+  outColor = vec4(col,1.0);
+}
+`;
+
+// -- Boilerplate: setup WebGL, compile shaders, create full-screen quad --
+const canvas = document.getElementById('glcanvas');
+const gl = canvas.getContext('webgl2');
+if(!gl){ alert('WebGL2 required'); throw 'No WebGL2'; }
+
+function createShader(gl, type, src){
+  let s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+    console.error(gl.getShaderInfoLog(s));
+    gl.deleteShader(s);
+    return null;
+  }
+  return s;
+}
+function createProgram(gl, vs, fs){
+  let v = createShader(gl, gl.VERTEX_SHADER, vs),
+      f = createShader(gl, gl.FRAGMENT_SHADER, fs),
+      p = gl.createProgram();
+  gl.attachShader(p, v);
+  gl.attachShader(p, f);
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p, gl.LINK_STATUS)){
+    console.error(gl.getProgramInfoLog(p));
+    gl.deleteProgram(p);
+    return null;
+  }
+  return p;
+}
+
+const program = createProgram(gl, vsSource, fsSource);
+const posLoc = gl.getAttribLocation(program, 'a_position');
+const resLoc = gl.getUniformLocation(program, 'u_resolution');
+const camPosLoc = gl.getUniformLocation(program, 'u_cameraPos');
+const camMatLoc = gl.getUniformLocation(program, 'u_cameraMat');
+
+const quad = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+  -1,-1,  1,-1,  -1,1,  -1,1,  1,-1,  1,1
+]), gl.STATIC_DRAW);
+
+// -- Resize handling --
+function resize(){
+  canvas.width = window.innerWidth;
+  canvas.height= window.innerHeight;
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// -- Camera state and controls --
+let cameraPos = [0,0,0.5], yaw = Math.PI, pitch = 0;
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code]=true);
+window.addEventListener('keyup',   e => keys[e.code]=false);
+
+// Pointer-lock for mouselook
+canvas.onclick = ()=> canvas.requestPointerLock();
+document.addEventListener('pointerlockchange', ()=>{
+  if(document.pointerLockElement===canvas){
+    document.addEventListener('mousemove', onMouseMove);
+  } else {
+    document.removeEventListener('mousemove', onMouseMove);
+  }
+});
+function onMouseMove(e){
+  const s = 0.002;
+  yaw   += e.movementX * s;
+  pitch -= e.movementY * s;
+  pitch = Math.max(-Math.PI/2+0.1, Math.min(Math.PI/2-0.1, pitch));
+}
+
+// -- Animation loop --
+let lastTime = 0;
+function frame(time){
+  let dt = (time - lastTime) * 0.001;
+  lastTime = time;
+
+  // Movement
+  const speed = dt * 0.05;
+  let front = normalize([
+    Math.cos(pitch)*Math.sin(yaw),
+    Math.sin(pitch),
+    Math.cos(pitch)*Math.cos(yaw)
+  ]);
+  let right = normalize(cross([0,1,0], front));
+  if(keys['KeyW']) cameraPos = cameraPos.map((v,i)=>v + front[i]*speed);
+  if(keys['KeyS']) cameraPos = cameraPos.map((v,i)=>v - front[i]*speed);
+  if(keys['KeyA']) cameraPos = cameraPos.map((v,i)=>v - right[i]*speed);
+  if(keys['KeyD']) cameraPos = cameraPos.map((v,i)=>v + right[i]*speed);
+  if(keys['Space'])         cameraPos[1] += speed;
+  if(keys['ShiftLeft'])     cameraPos[1] -= speed;
+  if(keys['ShiftRight'])    cameraPos[1] -= speed;
+
+  // Build camera matrix (cols: right, up, front)
+  let up = cross(front, right);
+  let camMat = new Float32Array([
+    right[0], right[1], right[2],
+    up[0],    up[1],    up[2],
+    front[0], front[1], front[2]
+  ]);
+
+  // Draw
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  gl.uniform2f(resLoc, canvas.width, canvas.height);
+  gl.uniform3fv(camPosLoc, cameraPos);
+  gl.uniformMatrix3fv(camMatLoc, false, camMat);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

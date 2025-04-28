@@ -1,7 +1,6 @@
-let buffer;      // offscreen feedback buffer
-// Particle class defined in Particle.js
+let buffer;
 let particles = [];
-let mic, fft;    // audio in + analyser
+let mic, fft;
 let audioLevel;  
 let glitchAmount;
 
@@ -9,7 +8,8 @@ let squareSize;
 
 function setup() {
   frameRate(60)
-  createCanvas(windowWidth, windowHeight);
+  let c = createCanvas(windowWidth, windowHeight);
+  c.id('p5canvas')
   pixelDensity(1);
   background(100);
   
@@ -39,19 +39,15 @@ const glitch_chance = 0.01;
 
 
 function draw() {
-  // Underlay or background image
   colorMode(RGB)
-  // fill(50, 50, 100, 100)
-  // rect(0, 0, width, height)
 
-
-  // ——— 1) audio analysis ———
+  // audio analysis
   let spectrum = fft.analyze();
   let sum = spectrum.reduce((a,b)=>a+b, 0);
   audioLevel = sum / spectrum.length;
   glitchAmount = constrain(audioLevel/128, 0, 1) * 1;
   
-  // --- 1a) FFT Setup ---
+  // FFT Setup
   let bass = fft.getEnergy(20, 150)
   let treble = fft.getEnergy("treble")
   let mid = fft.getEnergy("mid");
@@ -60,40 +56,35 @@ function draw() {
 
   // Draw square in the centre
   squareSize = height > width ? width / 5 : height / 5
-  stroke(255, 255)
   noFill()
   rectMode(CENTER)
   colorMode(HSB)
   stroke(16, 10, 100)
-  colorMode(RGB)
   strokeWeight(50)
+  colorMode(RGB)
   square(width / 2, height / 2, 50 + squareSize * (bass / 255) * 2)
   rectMode(CORNER)
   noStroke()
 
   
-  // ——— 3) draw last frame with feedback and transformation ———
+  // draw last frame with feedback and transformation
   push();
   let rotation = map(mid, 0, 255, -PI / 8, PI / 8) * glitchAmount;
-  // ensure buffer only grows, never shrinks
-  // let dynamicScale = map(mid, 0, 255, 0.9, 1.1);
-  let dynamicScale = map(mid, 0, 255, 1.0, 1.2);
+
+  // let dynamicScale = map(mid, 0, 255, 0.9, 1.1); // Zooming Buffer
+  let dynamicScale = map(mid, 0, 255, 1.0, 1.2); // Expanding Buffer
   translate(width / 2, height / 2);
   rotate(rotation);
   scale(dynamicScale + glitchAmount * 0.05);
   translate(-width / 2, -height / 2);
   
-  // Screen shake for bass response
+  // Small screen shake for bass response
   translate(
     random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10)),
     random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10))
   )
-  // slight fade
-  // tint(225, 245);
 
-  // Draw on screen
-
-  tint(225, map(audioLevel, 0, 120, 150, 230))
+  tint(251, map(audioLevel, 0, 120, 150, 230))
   image(buffer, 0, 0);
   noTint()
   pop();
@@ -120,7 +111,7 @@ function draw() {
     }
   }
 
-  // --- Draw treble circles ---
+  // Treble circles
     // spawn persistent particles on click
     for (let i = 0; i < (treble / 255) * 20; i++) {
       particles.push(new Particle(random(width), random(height)));
@@ -136,21 +127,23 @@ function draw() {
     }
   }
   
-  // --- final) copy current canvas into buffer for next frame ———
+  // Copy current canvas into buffer for next frame
   buffer.image(get(0, 0, width, height), 0, 0);
   
-  // 3) either continue an existing glitch …
+
+
+// Glitchy Holes
   if (glitchFrames > 0) {
-    // 1. carve out the hole
+    // carve out the hole
     buffer.erase();
     buffer.rect(glitchX, glitchY, glitchW, glitchH);
     buffer.noErase();
   
-    // 2. extract the patch as its own image
+    // extract the patch as its own image
     let patch = buffer.get(glitchX, glitchY, glitchW, glitchH);
-    // 3. invert that small image
+    // invert that small image
     patch.filter(INVERT);
-    // 4. draw it back into the hole
+    // draw it back into the hole
     buffer.image(patch, glitchX, glitchY);
   
     glitchFrames--;
@@ -159,10 +152,10 @@ function draw() {
       // buffer.resizeCanvas(windowWidth, windowHeight);
     }
   }
-  // … or start a new one
+  // or start a new one
   else if (random() < glitch_chance) {
-    glitchW = random(width / 16, width / 5);
-    glitchH = random(height / 16, height / 5);
+    glitchW = random(width / 16, width / 3);
+    glitchH = random(height / 16, height / 3);
     glitchX = random(0, width - glitchW);
     glitchY = random(0, height - glitchH);
     glitchFrames = int(random(100, 1000));

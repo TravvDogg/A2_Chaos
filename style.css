@@ -1,2 +1,19 @@
-body { margin:0; overflow:hidden; }
-canvas { display:block; }
+/* both canvases full‐screen */
+#glcanvas,
+#p5canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+/* p5 is underneath */
+#p5canvas {
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* WebGL on top, but only “lightens” i.e. shows where p5 is dark */
+#glcanvas {
+  z-index: 2;
+  mix-blend-mode: lighten;
+}
