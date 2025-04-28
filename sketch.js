@@ -35,12 +35,16 @@ function windowResized() {
 let glitchX, glitchY, glitchW, glitchH;
 let glitchFrames = 0;
 const glitch_duration = 200;
-const glitch_chance = 0.005;
+const glitch_chance = 0.01;
 
 
 function draw() {
+  // Underlay or background image
   colorMode(RGB)
-  
+  // fill(50, 50, 100, 100)
+  // rect(0, 0, width, height)
+
+
   // ——— 1) audio analysis ———
   let spectrum = fft.analyze();
   let sum = spectrum.reduce((a,b)=>a+b, 0);
@@ -52,7 +56,7 @@ function draw() {
   let treble = fft.getEnergy("treble")
   let mid = fft.getEnergy("mid");
   // only apply shake when bass energy exceeds threshold
-  let shakeAmount = bass > 150 ? map(bass, 200, 255, 0, 30) : 0;
+  let shakeAmount = bass > 150 ? map(bass, 150, 255, 0, 30) : 0;
 
   // Draw square in the centre
   squareSize = height > width ? width / 5 : height / 5
@@ -81,13 +85,17 @@ function draw() {
   
   // Screen shake for bass response
   translate(
-    random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10) * glitchAmount),
-    random(-4, 4) * shakeAmount * glitchAmount
+    random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10)),
+    random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10))
   )
   // slight fade
   // tint(225, 245);
+
+  // Draw on screen
+
   tint(225, map(audioLevel, 0, 120, 150, 230))
   image(buffer, 0, 0);
+  noTint()
   pop();
   
   let scanline_sat = 20
