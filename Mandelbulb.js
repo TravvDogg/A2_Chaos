@@ -8,10 +8,10 @@ function cross(a,b){ return [
     a[1]*b[2] - a[2]*b[1],
     a[2]*b[0] - a[0]*b[2],
     a[0]*b[1] - a[1]*b[0]
-  ]; }
+  ] }
   function normalize(v){
-    let l = Math.hypot(v[0],v[1],v[2]);
-    return [ v[0]/l, v[1]/l, v[2]/l ];
+    let l = Math.hypot(v[0],v[1],v[2])
+    return [ v[0]/l, v[1]/l, v[2]/l ]
   }
   
   // GLSL Sources
@@ -100,36 +100,35 @@ function cross(a,b){ return [
   `;
   
   // Boilerplate: setup WebGL, compile shaders, create full-screen quad
-  const canvas = document.getElementById('glcanvas');
+  const canvas = document.getElementById('glcanvas')
   const gl = canvas.getContext('webgl2', {
     powerPreference: 'high-performance'
-  });
-  if(!gl){ alert('WebGL2 required'); throw 'No WebGL2'; }
+  })
   
   function createShader(gl, type, src){
-    let s = gl.createShader(type);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
+    let s = gl.createShader(type)
+    gl.shaderSource(s, src)
+    gl.compileShader(s)
     if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
-      console.error(gl.getShaderInfoLog(s));
-      gl.deleteShader(s);
-      return null;
+      console.error(gl.getShaderInfoLog(s))
+      gl.deleteShader(s)
+      return null
     }
-    return s;
+    return s
   }
   function createProgram(gl, vs, fs){
     let v = createShader(gl, gl.VERTEX_SHADER, vs),
         f = createShader(gl, gl.FRAGMENT_SHADER, fs),
-        p = gl.createProgram();
-    gl.attachShader(p, v);
-    gl.attachShader(p, f);
-    gl.linkProgram(p);
+        p = gl.createProgram()
+    gl.attachShader(p, v)
+    gl.attachShader(p, f)
+    gl.linkProgram(p)
     if(!gl.getProgramParameter(p, gl.LINK_STATUS)){
-      console.error(gl.getProgramInfoLog(p));
-      gl.deleteProgram(p);
-      return null;
+      console.error(gl.getProgramInfoLog(p))
+      gl.deleteProgram(p)
+      return null
     }
-    return p;
+    return p
   }
   
   const program = createProgram(gl, vsSource, fsSource);
@@ -138,20 +137,20 @@ function cross(a,b){ return [
   const camPosLoc = gl.getUniformLocation(program, 'u_cameraPos');
   const camMatLoc = gl.getUniformLocation(program, 'u_cameraMat');
   
-  const quad = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  const quad = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
     -1,-1,  1,-1,  -1,1,  -1,1,  1,-1,  1,1
-  ]), gl.STATIC_DRAW);
+  ]), gl.STATIC_DRAW)
   
   // Resize handling
   function resize(){
-    canvas.width = window.innerWidth;
-    canvas.height= window.innerHeight;
-    gl.viewport(0,0,canvas.width,canvas.height);
+    canvas.width = window.innerWidth
+    canvas.height= window.innerHeight
+    gl.viewport(0,0,canvas.width,canvas.height)
   }
-  window.addEventListener('resize', resize);
-  resize();
+  window.addEventListener('resize', resize)
+  resize()
   
   // Camera state and controls
   let cameraPos = [0,0,0.01], yaw = Math.PI, pitch = 0;
