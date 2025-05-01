@@ -1,8 +1,3 @@
-window.mandel = {
-    params: { camerax: 0, cameray: 0 , cameraz: 0.005, cameraYaw: 0, cameraPitch: 0, cameraRoll: 0},
-}
-
-
 // Vector / Matrix Helpers
 function cross(a,b){ return [
     a[1]*b[2] - a[2]*b[1],
@@ -29,7 +24,7 @@ function cross(a,b){ return [
   out vec4 outColor;
   
   // Ray-marching settings
-  #define MAX_STEPS 100
+  #define MAX_STEPS 10
   #define MAX_DIST   200.0
   #define SURF_DIST  0.001
   
@@ -74,6 +69,13 @@ function cross(a,b){ return [
       k.xxx * sceneDE(p + k.xxx*h)
     );
   }
+
+  // HSV Colours
+  vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+  }
   
   // Ray-march and shade
   void main(){
@@ -88,12 +90,24 @@ function cross(a,b){ return [
       dist += d;
     }
     vec3 col = vec3(0.0);
+
+
+    // if(dist < MAX_DIST){
+    //   vec3 p = ro + rd*dist;
+    //   vec3 n = getNormal(p);
+    //   float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0);
+    //   // col = (dist < 0.01) ? vec3(1.0, 0.0, 0.0) : vec3(diff);
+    //   col = vec3(diff);
+    // }
     if(dist < MAX_DIST){
       vec3 p = ro + rd*dist;
       vec3 n = getNormal(p);
       float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0);
-      // col = (dist < 0.01) ? vec3(1.0, 0.0, 0.0) : vec3(diff);
-      col = vec3(diff);
+      float hue = mod(dist * 0.2, 1.0);
+      float saturation = 1.0;
+      float value = clamp(diff * 5.0, 0.2, 1.0);
+      // float value = 0.8;
+      col = hsv2rgb(vec3(hue, saturation, value));
     }
     outColor = vec4(col,1.0);
   }
@@ -136,6 +150,50 @@ function cross(a,b){ return [
   const resLoc = gl.getUniformLocation(program, 'u_resolution');
   const camPosLoc = gl.getUniformLocation(program, 'u_cameraPos');
   const camMatLoc = gl.getUniformLocation(program, 'u_cameraMat');
+
+  window.mandel = {
+    gl,
+    program,
+    uniforms: {
+      resolution: resLoc,
+      cameraPos:  camPosLoc,
+      cameraMat:  camMatLoc
+    },
+    params: {
+      cameraPos: [0, 0, 0],
+      yaw: Math.PI, 
+      pitch: 0, 
+      roll: 0
+    },
+
+    updateCamera({ pos, yaw, pitch, roll }) {
+      if (pos) {this.params.cameraPos = pos}
+      if (yaw !== undefined) {this.params.yaw = yaw}
+      if (pitch !== undefined) {this.params.pitch = pitch}
+      if (roll !== undefined) {this.params.roll = roll}
+    },
+
+    setCamera(pos, mat) {
+      this.gl.useProgram(this.program);
+      this.gl.uniform3fv(this.uniforms.cameraPos, pos);
+      this.gl.uniformMatrix3fv(this.uniforms.cameraMat, false, mat);
+    }
+  };
+
+  window.mandel.params = {
+    cameraPos: [0, 0.1, 0.01],
+    yaw: Math.PI,
+    pitch: 0,
+    roll: 0
+  }
+
+  // call from any script to update camera
+  window.mandel.updateCamera = function({ pos, yaw, pitch, roll }) {
+    if (pos) {this.params.cameraPos = pos}
+    if (yaw !== undefined) {this.params.yaw = yaw}
+    if (pitch !== undefined) {this.params.pitch = pitch}
+    if (roll !== undefined) {this.params.roll = roll}
+  }
   
   const quad = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, quad)
@@ -152,78 +210,35 @@ function cross(a,b){ return [
   window.addEventListener('resize', resize)
   resize()
   
-  // Camera state and controls
-  let cameraPos = [0,0,0.01], yaw = Math.PI, pitch = 0;
-  const keys = {};
-  window.addEventListener('keydown', e => keys[e.code]=true);
-  window.addEventListener('keyup',   e => keys[e.code]=false);
-  
-  canvas.addEventListener('click', init, { once: true });
-  function init() {  
-    // reset your timing state
-    lastTime = performance.now();
-  
-    // now start the render loop
-    requestAnimationFrame(frame);
-  }
-
-  // Pointer-lock for mouselook
-//   canvas.onclick = ()=> canvas.requestPointerLock();
-//   document.addEventListener('pointerlockchange', ()=>{
-//     if(document.pointerLockElement===canvas){
-//       document.addEventListener('mousemove', onMouseMove);
-//     } else {
-//       document.removeEventListener('mousemove', onMouseMove);
-//     }
-//   });
-  function onMouseMove(e){
-    const s = 0.002;
-    yaw   += e.movementX * s;
-    pitch -= e.movementY * s;
-    pitch = Math.max(-Math.PI/2+0.1, Math.min(Math.PI/2-0.1, pitch));
-  }
-  
   // Animation loop
   let lastTime = 0;
   function frame(time){
-    let dt = (time - lastTime) * 0.001;
-    lastTime = time;
-  
-    // Movement
-    const speed = dt * 0.05;
-    let front = normalize([
+    const {cameraPos, yaw, pitch, roll} = window.mandel.params
+
+    const front = normalize([
       Math.cos(pitch)*Math.sin(yaw),
       Math.sin(pitch),
       Math.cos(pitch)*Math.cos(yaw)
     ]);
-    let right = normalize(cross([0,1,0], front));
-    if(keys['KeyW']) cameraPos = cameraPos.map((v,i)=>v + front[i]*speed);
-    if(keys['KeyS']) cameraPos = cameraPos.map((v,i)=>v - front[i]*speed);
-    if(keys['KeyA']) cameraPos = cameraPos.map((v,i)=>v - right[i]*speed);
-    if(keys['KeyD']) cameraPos = cameraPos.map((v,i)=>v + right[i]*speed);
-    if(keys['Space'])         cameraPos[1] += speed;
-    if(keys['ShiftLeft'])     cameraPos[1] -= speed;
-    if(keys['ShiftRight'])    cameraPos[1] -= speed;
-  
-    // Build camera matrix (cols: right, up, front)
-    let up = cross(front, right);
+    const right = normalize(cross(front, [0,1,0]));
+    const up = cross(right, front);
+
     let camMat = new Float32Array([
-      right[0], right[1], right[2],
-      up[0],    up[1],    up[2],
-      front[0], front[1], front[2]
+      right[0], up[0], front[0],
+      right[1], up[1], front[1],
+      right[2], up[2], front[2]
     ]);
-  
+    
     // Draw
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-  
     gl.uniform2f(resLoc, canvas.width, canvas.height);
-    gl.uniform3fv(camPosLoc, cameraPos);
-    gl.uniformMatrix3fv(camMatLoc, false, camMat);
+    window.mandel.setCamera(cameraPos, camMat)
+    
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-  
     requestAnimationFrame(frame);
   }
+requestAnimationFrame(frame);

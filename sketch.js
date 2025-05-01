@@ -35,11 +35,22 @@ function windowResized() {
 let glitchX, glitchY, glitchW, glitchH
 let glitchFrames = 0
 const glitch_duration = 200
-const glitch_chance = 0.01
+const glitch_chance = 0.001
 
+let cameraZ = 0.01
+let cameraYaw = 0.01
 
 function draw() {
   colorMode(RGB)
+
+  window.mandel.updateCamera({
+    pos: [0, 0.001, cameraZ],
+    yaw: cameraYaw,
+    pitch: 0
+    // roll: 0
+  })
+  cameraZ += 0.00003
+  cameraYaw += 0.00003 * Math.PI
 
   // audio analysis
   let spectrum = fft.analyze()
