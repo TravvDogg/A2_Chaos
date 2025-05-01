@@ -223,11 +223,29 @@ function cross(a,b){ return [
     const right = normalize(cross(front, [0,1,0]));
     const up = cross(right, front);
 
-    let camMat = new Float32Array([
-      right[0], up[0], front[0],
-      right[1], up[1], front[1],
-      right[2], up[2], front[2]
+    const c = Math.cos(roll), s = Math.sin(roll);
+    const rRolled = [
+      right[0]*c + up[0]*s,
+      right[1]*c + up[1]*s,
+      right[2]*c + up[2]*s
+    ];
+    const uRolled = [
+      -right[0]*s + up[0]*c,
+      -right[1]*s + up[1]*c,
+      -right[2]*s + up[2]*c
+    ];
+    
+    const camMat = new Float32Array([
+      rRolled[0], uRolled[0], front[0],
+      rRolled[1], uRolled[1], front[1],
+      rRolled[2], uRolled[2], front[2]
     ]);
+
+    // let camMat = new Float32Array([
+    //   right[0], up[0], front[0],
+    //   right[1], up[1], front[1],
+    //   right[2], up[2], front[2]
+    // ]);
     
     // Draw
     gl.clear(gl.COLOR_BUFFER_BIT);

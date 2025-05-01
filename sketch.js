@@ -43,15 +43,7 @@ let cameraYaw = 0.01
 function draw() {
   colorMode(RGB)
 
-  window.mandel.updateCamera({
-    pos: [0, 0.001, cameraZ],
-    yaw: cameraYaw,
-    pitch: 0
-    // roll: 0
-  })
-  cameraZ += 0.00003
-  cameraYaw += 0.00003 * Math.PI
-
+  
   // audio analysis
   let spectrum = fft.analyze()
   let sum = spectrum.reduce((a,b)=>a+b, 0)
@@ -64,6 +56,47 @@ function draw() {
   let mid = fft.getEnergy("mid")
   // only apply shake when bass energy exceeds threshold
   let shakeAmount = bass > 150 ? map(bass, 150, 255, 0, 30) : 0
+  
+  // build a noise-driven position whose max radius = 0.7 * audioNorm
+  const audioNorm = constrain(audioLevel/255, 0, 1)
+
+  const minDrive = 0.3
+  const maxDrive = 1.0
+  const drive = lerp(minDrive, maxDrive, audioNorm)
+
+   // Sphere Radius
+  const baseR = 0.7
+
+  const timeScale = 0.001
+  const t = frameCount * timeScale
+
+  // sample three offset noise streams
+  let px = (noise(t + 0)   * 2 - 1) * baseR * drive
+  let py = (noise(t + 100) * 2 - 1) * baseR * drive
+  let pz = (noise(t + 200) * 2 - 1) * baseR * drive
+
+  // clamp into the sphere of radius maxR
+  const r = Math.hypot(px, py, pz)
+  if (r > baseR) {
+    const s = baseR / r
+    px *= s
+    py *= s
+    pz *= s
+  }
+
+  let yaw = (noise(t+300)*2 - 1) * PI * drive;
+  let pitch = (noise(t+400)*2 - 1) * PI/4 * drive;
+
+  window.mandel.updateCamera({
+    pos: [px, py, pz],
+    yaw,
+    pitch,
+    roll: 0
+  })
+  // cameraZ += 0.00003
+  // cameraYaw += 0.00003 * Math.PI
+
+
 
   // Draw square in the centre
   squareSize = height > width ? width / 5 : height / 5
