@@ -15,6 +15,16 @@ let glitchAmount
 
 let squareSize
 
+// Control the glitch frame's frequency and duration
+let glitchX, glitchY, glitchW, glitchH
+let glitchFrames = 0
+const glitch_duration = 200
+const glitch_chance = 0.001
+
+// Mandelbulb camera movement parameters
+let cameraZ = 0.01
+let cameraYaw = 0.01
+
 function setup() {
   frameRate(60) // 60FPS
   let c = createCanvas(windowWidth, windowHeight) // Fill the window
@@ -43,16 +53,6 @@ function windowResized() {
   buffer.resizeCanvas(windowWidth, windowHeight)
 }
 
-// Control the glitch frame's frequency and duration
-let glitchX, glitchY, glitchW, glitchH
-let glitchFrames = 0
-const glitch_duration = 200
-const glitch_chance = 0.001
-
-// Mandelbulb camera movement parameters
-let cameraZ = 0.01
-let cameraYaw = 0.01
-
 function draw() {
   // Default to rgb colours
   colorMode(RGB)
@@ -60,7 +60,7 @@ function draw() {
   // audio analysis
   let spectrum = fft.analyze()
 
-  // ***Recursive*** function to average thw spectrum
+  // ***Recursive*** function to average the spectrum
   function sumSpectrum(arr, i = 0) {
     if (i >= arr.length) return 0
     return arr[i] + sumSpectrum(arr, i+1)  // recursion!!!! :)
@@ -70,7 +70,8 @@ function draw() {
   // Calculate average audio level
   audioLevel = sum / spectrum.length
   // Scale intensity based on glitch amount.
-  glitchAmount = constrain(audioLevel/128, 0, 1) * 1 // Change this coefficient based on desired intensity / volume
+  gCoeff = 1 // Change this coefficient based on desired intensity / volume
+  glitchAmount = constrain(audioLevel/128, 0, gCoeff) * gCoeff
   
   // FFT Setup
   let bass = fft.getEnergy(20, 150)
