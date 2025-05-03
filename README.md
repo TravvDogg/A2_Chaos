@@ -5,9 +5,7 @@
 3. Make sure to allow microphone access
 4. Play any song or audio into the microphone and enjoy the visuals
    
-   **Make sure:**
-   Turn off noise cancellation:
-   ![Noise Cancellation(mac)](<attachments/Noise Cancellation.png>)
+   **Make sure** to turn off noise cancellation!
 
 ### Try these
 1. House or club music E.g. Daft Punk - Get Lucky
