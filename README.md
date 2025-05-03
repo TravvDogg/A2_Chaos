@@ -7,7 +7,8 @@
 
 ### Try these
 1. House or club music E.g. Daft Punk - Get Lucky
-2. Calmer music E.g. The Marias - Fog as a bullet 
+2. Calmer music E.g. The Marias - Fog as a bullet
+   
   these songs i find show the seperate frequencies effects well, in their own ways. I encourage you to try it with your own music,
   I find that bass heavy music is fun, but more delicate and hi-fi music often works better.
 
