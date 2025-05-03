@@ -9,3 +9,5 @@
 1. House or club music
 2. Heavy metal or rock music
 3. The sound of a conversation
+
+> The louder you play the music, the more pronounced the visuals
