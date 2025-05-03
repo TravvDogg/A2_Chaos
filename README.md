@@ -3,7 +3,7 @@ Disclaimers:
 - This code needs access to your mic to work. All processing is done client side.
   
 - **Might cause motion sickness in some people.**
-- **If you are epileptic or have a history of seizures, it is not recommended that you interact with this simulation. If you experience seizures or seizure-like symptoms, click away immediately and contact a health professional.**
+- **This content may contain flashing images or sequences that could trigger seizures in people with photosensitive epilepsy or other seizure disorders. If you experience any symptoms such as dizziness, altered vision, eye or muscle twitching, or involuntary movements, discontinue viewing immediately and consult a medical professional.**
 
 # How to run the sketch
 
