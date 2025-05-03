@@ -13,3 +13,5 @@
   I find that bass heavy music is fun, but more delicate and hi-fi music often works better.
 
 > The louder you play the music, the more pronounced the visuals. This visualiser was tuned for conversation volume. Funky stuff happens if you go much higher (rubbing or blowing into mic), give it a go if you want!
+
+Disclaimer: I haven't been able to run this in Chrome, but i know it works in safari
