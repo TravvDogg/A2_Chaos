@@ -1,66 +1,86 @@
+/* \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\
+------------------------------------------------------------------------
+        Written by Travis Lizio | Creative Coding A1
+------------------------------------------------------------------------
+        Mandelbulb.js: 
+          Draws background fractal.
+------------------------------------------------------------------------
+\\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ */
+
 // Vector / Matrix Helpers
+// Calculate cross product of two 3D vectors
 function cross(a,b){ return [
     a[1]*b[2] - a[2]*b[1],
     a[2]*b[0] - a[0]*b[2],
     a[0]*b[1] - a[1]*b[0]
   ] }
+
+  // Normalise 3D Vector to unit length
   function normalize(v){
     let l = Math.hypot(v[0],v[1],v[2])
     return [ v[0]/l, v[1]/l, v[2]/l ]
   }
   
   // GLSL Sources
+  // Map 2d Quad positions to screen space
   const vsSource = `#version 300 es
   in vec4 a_position;
   void main() {
     gl_Position = a_position;
-  }`;
+  }`
   
+  // Frag shader, Render mandelbulb with raymarching
   const fsSource = `#version 300 es
   precision highp float;
-  uniform vec2 u_resolution;
-  uniform vec3 u_cameraPos;
-  uniform mat3 u_cameraMat;
-  out vec4 outColor;
+  uniform vec2 u_resolution; // Canvas resolution
+  uniform vec3 u_cameraPos; // Camera position 3D
+  uniform mat3 u_cameraMat; // Camera rotation matrix
+  out vec4 outColor; // Final pixel colour
   
-  // Ray-marching settings
-  #define MAX_STEPS 10
-  #define MAX_DIST   200.0
-  #define SURF_DIST  0.001
+  // Raymarching constants
+  #define MAX_STEPS 10 // Max steps to march
+  #define MAX_DIST   200.0 // Max distance before giving up
+  #define SURF_DIST  0.001 // Distance to render points as a surface
     
-  // Distance estimator for 8th-order Mandelbulb
+  // Distance estimator
   float mandelbulbDE(vec3 pos){
-    vec3 z = pos;
-    float dr = 1.0;
-    float r = 0.0;
-    const int Iter = 8;
+    vec3 z = pos; // Position
+    float dr = 1.0; // Derivative for distance scaling
+    float r = 0.0; // Radius
+
+    const int Iter = 8; // Mndelbulb order
     for(int i=0; i<Iter; i++){
       r = length(z);
-      if(r>2.0) break;
-      float theta = acos(z.z/r);
-      float phi   = atan(z.y, z.x);
-      float powr  = pow(r, float(Iter));
-      dr = powr*float(Iter)*dr + 1.0;
-      float zr = pow(r, float(Iter));
+      if(r>2.0) break; // Escape outside bounds
+      float theta = acos(z.z/r); // Spherical coordinate theta
+      float phi   = atan(z.y, z.x); // Spherical coordinate phi
+      float powr  = pow(r, float(Iter)); // Scaling 'power'
+      dr = powr*float(Iter)*dr + 1.0; // Distance derivative
+      float zr = pow(r, float(Iter)); // Scaled radius
+      
+      // scale angles
       theta *= float(Iter);
       phi   *= float(Iter);
+
+       // Convert back to Cartesian (x,y axis)
       z = zr * vec3(
         sin(theta)*cos(phi),
         sin(phi)*sin(theta),
         cos(theta)
       ) + pos;
     }
-    if(r <= 2.0) return 0.1;
-    return r/dr;
+    if(r <= 2.0) return 0.1; // Small value if inside
+    return r/dr; // Distance estimate
   }
   
+  // Scene distance function
   float sceneDE(vec3 p){
-    return mandelbulbDE(p);
+    return mandelbulbDE(p); // Only mandelbulb in scene
   }
   
   // Estimate normal by gradient
   vec3 getNormal(vec3 p){
-    float h = 0.0001;
+    float h = 0.0001; // Small step for gradient
     vec2 k = vec2(1.0, -1.0);
     return normalize(
       k.xyy * sceneDE(p + k.xyy*h) +
@@ -70,48 +90,40 @@ function cross(a,b){ return [
     );
   }
 
-  // HSV Colours
+  // HSV Colour conversion
   vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
   }
   
-  // Ray-march and shade
+  // Ray-march and shade (rendering the bulb)
   void main(){
-    vec2 uv = (gl_FragCoord.xy - 0.5*u_resolution) / u_resolution.y;
-    vec3 rd = normalize(u_cameraMat * vec3(uv, 1.0));
-    vec3 ro = u_cameraPos;
+    vec2 uv = (gl_FragCoord.xy - 0.5*u_resolution) / u_resolution.y; // Normalised coords
+    vec3 rd = normalize(u_cameraMat * vec3(uv, 1.0)); // Ray direction
+    vec3 ro = u_cameraPos; // Ray Origin
     float dist = 0.0;
-    for(int i=0; i<MAX_STEPS; i++){
+    for(int i=0; i<MAX_STEPS; i++){ // March along ray
       vec3 p = ro + rd*dist;
       float d = sceneDE(p);
-      if(d < SURF_DIST || dist > MAX_DIST) break;
+      if(d < SURF_DIST || dist > MAX_DIST) break; // Hit or too far
       dist += d;
     }
-    vec3 col = vec3(0.0);
+    vec3 col = vec3(0.0); // default black colour
 
-
-    // if(dist < MAX_DIST){
-    //   vec3 p = ro + rd*dist;
-    //   vec3 n = getNormal(p);
-    //   float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0);
-    //   // col = (dist < 0.01) ? vec3(1.0, 0.0, 0.0) : vec3(diff);
-    //   col = vec3(diff);
-    // }
+    // Surface hit
     if(dist < MAX_DIST){
       vec3 p = ro + rd*dist;
-      vec3 n = getNormal(p);
-      float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0);
-      float hue = mod(dist * 0.2, 1.0);
+      vec3 n = getNormal(p); // Surface Normal
+      float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0); // Diffuse light
+      float hue = mod(dist * 0.2, 1.0); // Colour by distance (looks like a cool rainbow)
       float saturation = 1.0;
-      float value = clamp(diff * 5.0, 0.2, 0.9);
-      // float value = 0.8;
+      float value = clamp(diff * 5.0, 0.2, 0.9); // Brightness
+
       col = hsv2rgb(vec3(hue, saturation, value));
     }
-    outColor = vec4(col,1.0);
-  }
-  `;
+    outColor = vec4(col,1.0); // Colour to draw
+  }`
   
   // Boilerplate: setup WebGL, compile shaders, create full-screen quad
   const canvas = document.getElementById('glcanvas')
@@ -119,6 +131,7 @@ function cross(a,b){ return [
     powerPreference: 'high-performance'
   })
   
+  // Shader compilation
   function createShader(gl, type, src){
     let s = gl.createShader(type)
     gl.shaderSource(s, src)
@@ -145,12 +158,14 @@ function cross(a,b){ return [
     return p
   }
   
+  // Program and uniforms
   const program = createProgram(gl, vsSource, fsSource);
   const posLoc = gl.getAttribLocation(program, 'a_position');
   const resLoc = gl.getUniformLocation(program, 'u_resolution');
   const camPosLoc = gl.getUniformLocation(program, 'u_cameraPos');
   const camMatLoc = gl.getUniformLocation(program, 'u_cameraMat');
 
+  // Mandelbulb controls
   window.mandel = {
     gl,
     program,
@@ -160,12 +175,15 @@ function cross(a,b){ return [
       cameraMat:  camMatLoc
     },
     params: {
+       // Camera position
       cameraPos: [0, 0, 0],
-      yaw: Math.PI, 
-      pitch: 0, 
+      // Camera rotation
+      yaw: Math.PI,  
+      pitch: 0,
       roll: 0
     },
 
+    // Update camera params
     updateCamera({ pos, yaw, pitch, roll }) {
       if (pos) {this.params.cameraPos = pos}
       if (yaw !== undefined) {this.params.yaw = yaw}
@@ -173,6 +191,7 @@ function cross(a,b){ return [
       if (roll !== undefined) {this.params.roll = roll}
     },
 
+    // Set uniforms
     setCamera(pos, mat) {
       this.gl.useProgram(this.program);
       this.gl.uniform3fv(this.uniforms.cameraPos, pos);
@@ -180,6 +199,7 @@ function cross(a,b){ return [
     }
   };
 
+  // Initial settings (Sometimes broke without this here.)
   window.mandel.params = {
     cameraPos: [0, 0.1, 0.01],
     yaw: Math.PI,
@@ -195,6 +215,7 @@ function cross(a,b){ return [
     if (roll !== undefined) {this.params.roll = roll}
   }
   
+  // Render onto a fullscreen quad
   const quad = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, quad)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -214,14 +235,16 @@ function cross(a,b){ return [
   function frame() {
     const {cameraPos, yaw, pitch, roll} = window.mandel.params
 
-    const front = normalize([
+    // Camerra orientation
+    const front = normalize([ // Forward direction
       Math.cos(pitch)*Math.sin(yaw),
       Math.sin(pitch),
       Math.cos(pitch)*Math.cos(yaw)
     ]);
-    const right = normalize(cross(front, [0,1,0]));
-    const up = cross(right, front);
+    const right = normalize(cross(front, [0,1,0])); // Right direction
+    const up = cross(right, front); // Up direction
 
+    // Apply roll
     const c = Math.cos(roll), s = Math.sin(roll);
     const rRolled = [
       right[0]*c + up[0]*s,
@@ -234,6 +257,7 @@ function cross(a,b){ return [
       -right[2]*s + up[2]*c
     ];
 
+    // Camera matrix
     const camMat = new Float32Array([
       rRolled[0], uRolled[0], front[0],
       rRolled[1], uRolled[1], front[1],
@@ -249,7 +273,7 @@ function cross(a,b){ return [
     gl.uniform2f(resLoc, canvas.width, canvas.height);
     window.mandel.setCamera(cameraPos, camMat)
     
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.drawArrays(gl.TRIANGLES, 0, 6); // Draw the quad
     requestAnimationFrame(frame);
   }
 requestAnimationFrame(frame);

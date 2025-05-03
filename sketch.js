@@ -1,3 +1,12 @@
+/* \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\
+------------------------------------------------------------------------
+        Written by Travis Lizio | Creative Coding A2
+------------------------------------------------------------------------
+        Main Sketch. 
+------------------------------------------------------------------------
+\\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ */
+
+// Variable declaration
 let buffer
 let particles = []
 let mic, fft
@@ -7,11 +16,11 @@ let glitchAmount
 let squareSize
 
 function setup() {
-  frameRate(60)
-  let c = createCanvas(windowWidth, windowHeight)
+  frameRate(60) // 60FPS
+  let c = createCanvas(windowWidth, windowHeight) // Fill the window
   c.id('p5canvas')
-  pixelDensity(1)
-  background(100)
+  pixelDensity(1) // Make sure large resolutions (retina displays) dont cause excessive lag
+  background(100) // Medium gray background
   
   // offscreen canvas to hold the last frame
   buffer = createGraphics(windowWidth, windowHeight)
@@ -24,31 +33,37 @@ function setup() {
   fft = new p5.FFT(0.8, 1024)
   fft.setInput(mic)
   
+  // Disable stroke on shapes
   noStroke()
 }
 
+// Handle resizing window
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight)
   buffer.resizeCanvas(windowWidth, windowHeight)
 }
 
+// Control the glitch frame's frequency and duration
 let glitchX, glitchY, glitchW, glitchH
 let glitchFrames = 0
 const glitch_duration = 200
 const glitch_chance = 0.001
 
+// Mandelbulb camera movement parameters
 let cameraZ = 0.01
 let cameraYaw = 0.01
 
 function draw() {
+  // Default to rgb colours
   colorMode(RGB)
 
-  
   // audio analysis
   let spectrum = fft.analyze()
   let sum = spectrum.reduce((a,b)=>a+b, 0)
+  // Calculate average audio level
   audioLevel = sum / spectrum.length
-  glitchAmount = constrain(audioLevel/128, 0, 1) * 1
+  // Scale intensity based on glitch amount.
+  glitchAmount = constrain(audioLevel/128, 0, 1) * 1 // Change this coefficient based on desired intensity / volume
   
   // FFT Setup
   let bass = fft.getEnergy(20, 150)
@@ -63,9 +78,10 @@ function draw() {
 
   const minDrive = 0.3
   const maxDrive = 1.0
+  // Scale camera movement by audio intensity
   const drive = lerp(minDrive, maxDrive, audioNorm)
 
-   // Sphere Radius
+   // Sphere Radius (inside of mandelbulb, approximated)
   const baseR = 0.7
 
   const timeScale = 0.0005
@@ -74,6 +90,7 @@ function draw() {
   // sample three offset noise streams
   let px = (noise(t + 0)   * 2 - 1) * baseR
   let py = (noise(t + 100) * 2 - 1) * baseR
+  // Only move in Z axis (depth) based on sound, so there isnt a sickening amount of movement
   let pz = (noise(t + 200) * 2 - 1) * baseR * drive
 
   // clamp into the sphere of radius maxR
@@ -85,6 +102,7 @@ function draw() {
     pz *= s
   }
 
+  // Set camera orientation
   let yaw = 0
   let pitch = (noise(t+400)*2 - 1) * PI / 4
   let roll = (noise(t+300)*2 - 1) * PI
@@ -95,19 +113,17 @@ function draw() {
     pitch,
     roll
   })
-  // cameraZ += 0.00003
-  // cameraYaw += 0.00003 * Math.PI
-  
 
-
-  // Draw square in the centre
+  // Draw square in the centre that pulses with bass
   squareSize = height > width ? width / 5 : height / 5
   noFill()
   rectMode(CENTER)
   colorMode(HSB)
+  // Square colour
   stroke(16, 1, 100)
   strokeWeight(50)
   colorMode(RGB)
+  // Scale based on bass intensity
   square(width / 2, height / 2, 50 + squareSize * (bass / 255) * 2)
   rectMode(CORNER)
   noStroke()
@@ -115,12 +131,16 @@ function draw() {
   
   // draw last frame with feedback and transformation
   push()
+  // Rotate the canvas based on mids
   let rotation = map(mid, 0, 255, -PI / 8, PI / 8) * glitchAmount
 
-  // let dynamicScale = map(mid, 0, 255, 0.9, 1.1) // Zooming Buffer
-  let dynamicScale = map(mid, 0, 255, 1.0, 1.2) // Expanding Buffer
+  // --- Comment one of these out to change the way the buffer zooms:
+    // let dynamicScale = map(mid, 0, 255, 0.9, 1.1) // Zooming Buffer
+       let dynamicScale = map(mid, 0, 255, 1.0, 1.2) // Expanding Buffer
+
   translate(width / 2, height / 2)
   rotate(rotation)
+  // Scale faster based on glitch amount.
   scale(dynamicScale + glitchAmount * 0.05)
   translate(-width / 2, -height / 2)
   
@@ -130,14 +150,18 @@ function draw() {
     random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10))
   )
 
+  // tint the previous frame.
+  // Finnicky parameters, changes a *lot* about how the visualiser looks.
   tint(251, map(audioLevel, 0, 120, 150, 250))
   image(buffer, 0, 0)
   noTint()
   pop()
   
+  // glitch scanlines
   let scanline_sat = 20
   let scanline_bright = 100
-
+  // Red, blue, green and white scanlines for a cool kinda effect. 
+  // Was too rainbowey before, didnt look digital or glitchy enough
   let scanline_colours = [
     [0, scanline_sat, scanline_bright], 
     [120, scanline_sat, scanline_bright], 
@@ -145,7 +169,6 @@ function draw() {
     [0, 0, scanline_bright]
   ]
 
-  // ——— glitch scanlines ———
   if (random() < glitchAmount * 0.4) {
     noStroke()
     for (let i = 0; i < 10; i++) {
@@ -178,24 +201,25 @@ function draw() {
   
 
 
-// Glitchy Holes
+// Glitchy 'Holes'
   if (glitchFrames > 0) {
     // carve out the hole
     buffer.erase()
     buffer.rect(glitchX, glitchY, glitchW, glitchH)
     buffer.noErase()
   
-    // extract the patch as its own image
+    // extract the patch as its own buffer
     let patch = buffer.get(glitchX, glitchY, glitchW, glitchH)
-    // invert that small image
+    // invert the buffer 
+    // (or any effect. I just chose invert but there are 
+    // a few to choose from that look interesting too)
     patch.filter(INVERT)
-    // draw it back into the hole
+    // draw it back into the spot
     buffer.image(patch, glitchX, glitchY)
   
     glitchFrames--
     if (glitchFrames == 1) {
       resizeCanvas(windowWidth, windowHeight)
-      // buffer.resizeCanvas(windowWidth, windowHeight);
     }
   }
   // or start a new one
@@ -205,42 +229,5 @@ function draw() {
     glitchX = random(0, width - glitchW)
     glitchY = random(0, height - glitchH)
     glitchFrames = int(random(100, 1000))
-  }
-}
-
-// Particle.js
-
-class Particle {
-  constructor(x, y) {
-    this.x = x
-    this.y = y
-    this.vx = random(-2, 2)
-    this.vy = random(-2, 2)
-    this.size = random(15, 27)
-    this.life = int(random(30, 100))
-    this.color = [
-      random(360),
-      random(60),
-      random(50, 100),
-      random(0.5, 1)
-    ]
-  }
-  
-  update() {
-    this.x += this.vx
-    this.y += this.vy
-    this.life--
-  }
-  
-  draw() {
-    noStroke()
-    colorMode(HSB)
-    fill(this.color[0], this.color[1], this.color[2], this.color[3]);
-    colorMode(RGB)
-    ellipse(this.x, this.y, this.size)
-  }
-  
-  isDead() {
-    return this.life <= 0
   }
 }
