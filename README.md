@@ -5,7 +5,7 @@
 3. Make sure to allow microphone access
 4. Play any song or audio into the microphone and enjoy the visuals
    
-   **Make sure** to turn off noise cancellation!
+   **Make sure** to turn off noise cancellation, and allow microphone access.
 
 ### Try these
 1. House or club music E.g. Daft Punk - Get Lucky
