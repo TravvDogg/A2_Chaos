@@ -10,4 +10,4 @@
 2. Heavy metal or rock music
 3. The sound of a conversation
 
-> The louder you play the music, the more pronounced the visuals
+> The louder you play the music, the more pronounced the visuals. This visualiser was tuned for conversation volume. Funky stuff happens if you go much higher (rubbing or blowing into mic), give it a go if you want!
