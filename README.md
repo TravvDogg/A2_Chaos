@@ -1,3 +1,10 @@
+Disclaimers: 
+- This code renders a **Fractal** using WebGL. It's performance heavy, so it can be slow on laptops, and will eat your battery 😋
+- This code needs access to your mic to work. All processing is done client side.
+  
+- **Might cause motion sickness in some people.**
+- **If you epileptic or have a history of seizures, it is not reccomended that you interact with this simulation. If you experience seizures or seizure-like symptoms while watching this, click away immediately and contact a health professional.**
+
 # How to run the sketch
 
 1. Clone repo to your computer
