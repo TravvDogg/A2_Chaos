@@ -27,7 +27,7 @@ function cross(a,b){ return [
   #define MAX_STEPS 10
   #define MAX_DIST   200.0
   #define SURF_DIST  0.001
-  
+    
   // Distance estimator for 8th-order Mandelbulb
   float mandelbulbDE(vec3 pos){
     vec3 z = pos;
@@ -105,7 +105,7 @@ function cross(a,b){ return [
       float diff = clamp(dot(n, vec3(0,1,0)), 0.0, 1.0);
       float hue = mod(dist * 0.2, 1.0);
       float saturation = 1.0;
-      float value = clamp(diff * 5.0, 0.2, 1.0);
+      float value = clamp(diff * 5.0, 0.2, 0.9);
       // float value = 0.8;
       col = hsv2rgb(vec3(hue, saturation, value));
     }
@@ -211,8 +211,7 @@ function cross(a,b){ return [
   resize()
   
   // Animation loop
-  let lastTime = 0;
-  function frame(time){
+  function frame() {
     const {cameraPos, yaw, pitch, roll} = window.mandel.params
 
     const front = normalize([
@@ -234,18 +233,12 @@ function cross(a,b){ return [
       -right[1]*s + up[1]*c,
       -right[2]*s + up[2]*c
     ];
-    
+
     const camMat = new Float32Array([
       rRolled[0], uRolled[0], front[0],
       rRolled[1], uRolled[1], front[1],
       rRolled[2], uRolled[2], front[2]
     ]);
-
-    // let camMat = new Float32Array([
-    //   right[0], up[0], front[0],
-    //   right[1], up[1], front[1],
-    //   right[2], up[2], front[2]
-    // ]);
     
     // Draw
     gl.clear(gl.COLOR_BUFFER_BIT);

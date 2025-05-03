@@ -57,7 +57,8 @@ function draw() {
   // only apply shake when bass energy exceeds threshold
   let shakeAmount = bass > 150 ? map(bass, 150, 255, 0, 30) : 0
   
-  // build a noise-driven position whose max radius = 0.7 * audioNorm
+
+  // Mandelbulb Calculations
   const audioNorm = constrain(audioLevel/255, 0, 1)
 
   const minDrive = 0.3
@@ -67,12 +68,12 @@ function draw() {
    // Sphere Radius
   const baseR = 0.7
 
-  const timeScale = 0.001
+  const timeScale = 0.0005
   const t = frameCount * timeScale
 
   // sample three offset noise streams
-  let px = (noise(t + 0)   * 2 - 1) * baseR * drive
-  let py = (noise(t + 100) * 2 - 1) * baseR * drive
+  let px = (noise(t + 0)   * 2 - 1) * baseR
+  let py = (noise(t + 100) * 2 - 1) * baseR
   let pz = (noise(t + 200) * 2 - 1) * baseR * drive
 
   // clamp into the sphere of radius maxR
@@ -84,18 +85,19 @@ function draw() {
     pz *= s
   }
 
-  let yaw = (noise(t+300)*2 - 1) * PI * drive;
-  let pitch = (noise(t+400)*2 - 1) * PI/4 * drive;
+  let yaw = 0
+  let pitch = (noise(t+400)*2 - 1) * PI / 4
+  let roll = (noise(t+300)*2 - 1) * PI
 
   window.mandel.updateCamera({
     pos: [px, py, pz],
     yaw,
     pitch,
-    roll: 0
+    roll
   })
   // cameraZ += 0.00003
   // cameraYaw += 0.00003 * Math.PI
-
+  
 
 
   // Draw square in the centre
@@ -103,7 +105,7 @@ function draw() {
   noFill()
   rectMode(CENTER)
   colorMode(HSB)
-  stroke(16, 10, 100)
+  stroke(16, 1, 100)
   strokeWeight(50)
   colorMode(RGB)
   square(width / 2, height / 2, 50 + squareSize * (bass / 255) * 2)
@@ -128,7 +130,7 @@ function draw() {
     random(-4, 4) * shakeAmount * glitchAmount + (0.5 - noise(frameCount / 10))
   )
 
-  tint(251, map(audioLevel, 0, 120, 150, 230))
+  tint(251, map(audioLevel, 0, 120, 150, 250))
   image(buffer, 0, 0)
   noTint()
   pop()
@@ -214,7 +216,7 @@ class Particle {
     this.y = y
     this.vx = random(-2, 2)
     this.vy = random(-2, 2)
-    this.size = random(5, 20)
+    this.size = random(15, 27)
     this.life = int(random(30, 100))
     this.color = [
       random(360),
