@@ -211,7 +211,8 @@ function cross(a,b){ return [
   const quad = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, quad)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-    -1,-1,  1,-1,  -1,1,  -1,1,  1,-1,  1,1
+    -1,-1, 1,-1, -1, 1, 
+    -1, 1, 1,-1,  1, 1
   ]), gl.STATIC_DRAW)
   
   // Resize handling
