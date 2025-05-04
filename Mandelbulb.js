@@ -206,14 +206,6 @@ function cross(a,b){ return [
     pitch: 0,
     roll: 0
   }
-
-  // call from any script to update camera
-  window.mandel.updateCamera = function({ pos, yaw, pitch, roll }) {
-    if (pos) {this.params.cameraPos = pos}
-    if (yaw !== undefined) {this.params.yaw = yaw}
-    if (pitch !== undefined) {this.params.pitch = pitch}
-    if (roll !== undefined) {this.params.roll = roll}
-  }
   
   // Render onto a fullscreen quad
   const quad = gl.createBuffer()
