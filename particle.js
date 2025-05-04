@@ -1,6 +1,6 @@
 /* \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\
 ------------------------------------------------------------------------
-        Written by Travis Lizio | Creative Coding A1
+        Written by Travis Lizio | Creative Coding A2
 ------------------------------------------------------------------------
         particle Class: 
           Manages each treble particle.

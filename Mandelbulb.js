@@ -1,6 +1,6 @@
 /* \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\ // \\
 ------------------------------------------------------------------------
-        Written by Travis Lizio | Creative Coding A1
+        Written by Travis Lizio | Creative Coding A2
 ------------------------------------------------------------------------
         Mandelbulb.js: 
           Draws background fractal.
