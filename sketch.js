@@ -189,7 +189,7 @@ function draw() {
   }
 
   // Treble circles
-    // spawn persistent particles on click
+    // spawn persistent particles
     for (let i = 0; i < (treble / 255) * 20; i++) {
       particles.push(new Particle(random(width), random(height)));
     }
